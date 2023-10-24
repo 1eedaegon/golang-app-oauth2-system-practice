@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/image"
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/predicate"
+	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/tenant"
 )
 
 // ImageQuery is the builder for querying Image entities.
@@ -21,6 +22,8 @@ type ImageQuery struct {
 	order      []image.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Image
+	withTenant *TenantQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -55,6 +58,28 @@ func (iq *ImageQuery) Unique(unique bool) *ImageQuery {
 func (iq *ImageQuery) Order(o ...image.OrderOption) *ImageQuery {
 	iq.order = append(iq.order, o...)
 	return iq
+}
+
+// QueryTenant chains the current query on the "tenant" edge.
+func (iq *ImageQuery) QueryTenant() *TenantQuery {
+	query := (&TenantClient{config: iq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := iq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := iq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(image.Table, image.FieldID, selector),
+			sqlgraph.To(tenant.Table, tenant.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, image.TenantTable, image.TenantColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Image entity from the query.
@@ -249,10 +274,22 @@ func (iq *ImageQuery) Clone() *ImageQuery {
 		order:      append([]image.OrderOption{}, iq.order...),
 		inters:     append([]Interceptor{}, iq.inters...),
 		predicates: append([]predicate.Image{}, iq.predicates...),
+		withTenant: iq.withTenant.Clone(),
 		// clone intermediate query.
 		sql:  iq.sql.Clone(),
 		path: iq.path,
 	}
+}
+
+// WithTenant tells the query-builder to eager-load the nodes that are connected to
+// the "tenant" edge. The optional arguments are used to configure the query builder of the edge.
+func (iq *ImageQuery) WithTenant(opts ...func(*TenantQuery)) *ImageQuery {
+	query := (&TenantClient{config: iq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	iq.withTenant = query
+	return iq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -331,15 +368,26 @@ func (iq *ImageQuery) prepareQuery(ctx context.Context) error {
 
 func (iq *ImageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Image, error) {
 	var (
-		nodes = []*Image{}
-		_spec = iq.querySpec()
+		nodes       = []*Image{}
+		withFKs     = iq.withFKs
+		_spec       = iq.querySpec()
+		loadedTypes = [1]bool{
+			iq.withTenant != nil,
+		}
 	)
+	if iq.withTenant != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, image.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Image).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Image{config: iq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -351,7 +399,46 @@ func (iq *ImageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Image,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := iq.withTenant; query != nil {
+		if err := iq.loadTenant(ctx, query, nodes, nil,
+			func(n *Image, e *Tenant) { n.Edges.Tenant = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (iq *ImageQuery) loadTenant(ctx context.Context, query *TenantQuery, nodes []*Image, init func(*Image), assign func(*Image, *Tenant)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Image)
+	for i := range nodes {
+		if nodes[i].tenant_image == nil {
+			continue
+		}
+		fk := *nodes[i].tenant_image
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(tenant.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tenant_image" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (iq *ImageQuery) sqlCount(ctx context.Context) (int, error) {

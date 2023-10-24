@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/image"
+	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/tenant"
 	"github.com/google/uuid"
 )
 
@@ -20,15 +21,41 @@ type Image struct {
 	ID int `json:"id,omitempty"`
 	// ImageID holds the value of the "image_id" field.
 	ImageID uuid.UUID `json:"image_id,omitempty"`
-	// TenantID holds the value of the "tenant_id" field.
-	TenantID uuid.UUID `json:"tenant_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// TenantID holds the value of the "tenant_id" field.
+	TenantID uuid.UUID `json:"tenant_id,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ImageQuery when eager-loading is set.
+	Edges        ImageEdges `json:"edges"`
+	tenant_image *int
 	selectValues sql.SelectValues
+}
+
+// ImageEdges holds the relations/edges for other nodes in the graph.
+type ImageEdges struct {
+	// Tenant holds the value of the tenant edge.
+	Tenant *Tenant `json:"tenant,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// TenantOrErr returns the Tenant value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ImageEdges) TenantOrErr() (*Tenant, error) {
+	if e.loadedTypes[0] {
+		if e.Tenant == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: tenant.Label}
+		}
+		return e.Tenant, nil
+	}
+	return nil, &NotLoadedError{edge: "tenant"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -44,6 +71,8 @@ func (*Image) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case image.FieldImageID, image.FieldTenantID:
 			values[i] = new(uuid.UUID)
+		case image.ForeignKeys[0]: // tenant_image
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -71,12 +100,6 @@ func (i *Image) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				i.ImageID = *value
 			}
-		case image.FieldTenantID:
-			if value, ok := values[j].(*uuid.UUID); !ok {
-				return fmt.Errorf("unexpected type %T for field tenant_id", values[j])
-			} else if value != nil {
-				i.TenantID = *value
-			}
 		case image.FieldName:
 			if value, ok := values[j].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[j])
@@ -95,6 +118,19 @@ func (i *Image) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				i.UpdatedAt = value.Time
 			}
+		case image.FieldTenantID:
+			if value, ok := values[j].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field tenant_id", values[j])
+			} else if value != nil {
+				i.TenantID = *value
+			}
+		case image.ForeignKeys[0]:
+			if value, ok := values[j].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field tenant_image", value)
+			} else if value.Valid {
+				i.tenant_image = new(int)
+				*i.tenant_image = int(value.Int64)
+			}
 		default:
 			i.selectValues.Set(columns[j], values[j])
 		}
@@ -106,6 +142,11 @@ func (i *Image) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (i *Image) Value(name string) (ent.Value, error) {
 	return i.selectValues.Get(name)
+}
+
+// QueryTenant queries the "tenant" edge of the Image entity.
+func (i *Image) QueryTenant() *TenantQuery {
+	return NewImageClient(i.config).QueryTenant(i)
 }
 
 // Update returns a builder for updating this Image.
@@ -134,9 +175,6 @@ func (i *Image) String() string {
 	builder.WriteString("image_id=")
 	builder.WriteString(fmt.Sprintf("%v", i.ImageID))
 	builder.WriteString(", ")
-	builder.WriteString("tenant_id=")
-	builder.WriteString(fmt.Sprintf("%v", i.TenantID))
-	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(i.Name)
 	builder.WriteString(", ")
@@ -145,6 +183,9 @@ func (i *Image) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(i.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("tenant_id=")
+	builder.WriteString(fmt.Sprintf("%v", i.TenantID))
 	builder.WriteByte(')')
 	return builder.String()
 }

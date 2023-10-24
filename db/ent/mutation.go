@@ -37,11 +37,13 @@ type ImageMutation struct {
 	typ           string
 	id            *int
 	image_id      *uuid.UUID
-	tenant_id     *uuid.UUID
 	name          *string
 	created_at    *time.Time
 	updated_at    *time.Time
+	tenant_id     *uuid.UUID
 	clearedFields map[string]struct{}
+	tenant        *int
+	clearedtenant bool
 	done          bool
 	oldValue      func(context.Context) (*Image, error)
 	predicates    []predicate.Image
@@ -181,42 +183,6 @@ func (m *ImageMutation) ResetImageID() {
 	m.image_id = nil
 }
 
-// SetTenantID sets the "tenant_id" field.
-func (m *ImageMutation) SetTenantID(u uuid.UUID) {
-	m.tenant_id = &u
-}
-
-// TenantID returns the value of the "tenant_id" field in the mutation.
-func (m *ImageMutation) TenantID() (r uuid.UUID, exists bool) {
-	v := m.tenant_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTenantID returns the old "tenant_id" field's value of the Image entity.
-// If the Image object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ImageMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTenantID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
-	}
-	return oldValue.TenantID, nil
-}
-
-// ResetTenantID resets all changes to the "tenant_id" field.
-func (m *ImageMutation) ResetTenantID() {
-	m.tenant_id = nil
-}
-
 // SetName sets the "name" field.
 func (m *ImageMutation) SetName(s string) {
 	m.name = &s
@@ -325,6 +291,94 @@ func (m *ImageMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
+// SetTenantID sets the "tenant_id" field.
+func (m *ImageMutation) SetTenantID(u uuid.UUID) {
+	m.tenant_id = &u
+}
+
+// TenantID returns the value of the "tenant_id" field in the mutation.
+func (m *ImageMutation) TenantID() (r uuid.UUID, exists bool) {
+	v := m.tenant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantID returns the old "tenant_id" field's value of the Image entity.
+// If the Image object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ImageMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
+	}
+	return oldValue.TenantID, nil
+}
+
+// ClearTenantID clears the value of the "tenant_id" field.
+func (m *ImageMutation) ClearTenantID() {
+	m.tenant_id = nil
+	m.clearedFields[image.FieldTenantID] = struct{}{}
+}
+
+// TenantIDCleared returns if the "tenant_id" field was cleared in this mutation.
+func (m *ImageMutation) TenantIDCleared() bool {
+	_, ok := m.clearedFields[image.FieldTenantID]
+	return ok
+}
+
+// ResetTenantID resets all changes to the "tenant_id" field.
+func (m *ImageMutation) ResetTenantID() {
+	m.tenant_id = nil
+	delete(m.clearedFields, image.FieldTenantID)
+}
+
+// SetTenantID sets the "tenant" edge to the Tenant entity by id.
+func (m *ImageMutation) SetTenantID(id int) {
+	m.tenant = &id
+}
+
+// ClearTenant clears the "tenant" edge to the Tenant entity.
+func (m *ImageMutation) ClearTenant() {
+	m.clearedtenant = true
+}
+
+// TenantCleared reports if the "tenant" edge to the Tenant entity was cleared.
+func (m *ImageMutation) TenantCleared() bool {
+	return m.clearedtenant
+}
+
+// TenantID returns the "tenant" edge ID in the mutation.
+func (m *ImageMutation) TenantID() (id int, exists bool) {
+	if m.tenant != nil {
+		return *m.tenant, true
+	}
+	return
+}
+
+// TenantIDs returns the "tenant" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TenantID instead. It exists only for internal usage by the builders.
+func (m *ImageMutation) TenantIDs() (ids []int) {
+	if id := m.tenant; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTenant resets all changes to the "tenant" edge.
+func (m *ImageMutation) ResetTenant() {
+	m.tenant = nil
+	m.clearedtenant = false
+}
+
 // Where appends a list predicates to the ImageMutation builder.
 func (m *ImageMutation) Where(ps ...predicate.Image) {
 	m.predicates = append(m.predicates, ps...)
@@ -363,9 +417,6 @@ func (m *ImageMutation) Fields() []string {
 	if m.image_id != nil {
 		fields = append(fields, image.FieldImageID)
 	}
-	if m.tenant_id != nil {
-		fields = append(fields, image.FieldTenantID)
-	}
 	if m.name != nil {
 		fields = append(fields, image.FieldName)
 	}
@@ -374,6 +425,9 @@ func (m *ImageMutation) Fields() []string {
 	}
 	if m.updated_at != nil {
 		fields = append(fields, image.FieldUpdatedAt)
+	}
+	if m.tenant_id != nil {
+		fields = append(fields, image.FieldTenantID)
 	}
 	return fields
 }
@@ -385,14 +439,14 @@ func (m *ImageMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case image.FieldImageID:
 		return m.ImageID()
-	case image.FieldTenantID:
-		return m.TenantID()
 	case image.FieldName:
 		return m.Name()
 	case image.FieldCreatedAt:
 		return m.CreatedAt()
 	case image.FieldUpdatedAt:
 		return m.UpdatedAt()
+	case image.FieldTenantID:
+		return m.TenantID()
 	}
 	return nil, false
 }
@@ -404,14 +458,14 @@ func (m *ImageMutation) OldField(ctx context.Context, name string) (ent.Value, e
 	switch name {
 	case image.FieldImageID:
 		return m.OldImageID(ctx)
-	case image.FieldTenantID:
-		return m.OldTenantID(ctx)
 	case image.FieldName:
 		return m.OldName(ctx)
 	case image.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case image.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
+	case image.FieldTenantID:
+		return m.OldTenantID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Image field %s", name)
 }
@@ -427,13 +481,6 @@ func (m *ImageMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetImageID(v)
-		return nil
-	case image.FieldTenantID:
-		v, ok := value.(uuid.UUID)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTenantID(v)
 		return nil
 	case image.FieldName:
 		v, ok := value.(string)
@@ -455,6 +502,13 @@ func (m *ImageMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
+		return nil
+	case image.FieldTenantID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Image field %s", name)
@@ -485,7 +539,11 @@ func (m *ImageMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *ImageMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(image.FieldTenantID) {
+		fields = append(fields, image.FieldTenantID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -498,6 +556,11 @@ func (m *ImageMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *ImageMutation) ClearField(name string) error {
+	switch name {
+	case image.FieldTenantID:
+		m.ClearTenantID()
+		return nil
+	}
 	return fmt.Errorf("unknown Image nullable field %s", name)
 }
 
@@ -508,9 +571,6 @@ func (m *ImageMutation) ResetField(name string) error {
 	case image.FieldImageID:
 		m.ResetImageID()
 		return nil
-	case image.FieldTenantID:
-		m.ResetTenantID()
-		return nil
 	case image.FieldName:
 		m.ResetName()
 		return nil
@@ -520,25 +580,37 @@ func (m *ImageMutation) ResetField(name string) error {
 	case image.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
+	case image.FieldTenantID:
+		m.ResetTenantID()
+		return nil
 	}
 	return fmt.Errorf("unknown Image field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ImageMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.tenant != nil {
+		edges = append(edges, image.EdgeTenant)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *ImageMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case image.EdgeTenant:
+		if id := m.tenant; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ImageMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -550,42 +622,67 @@ func (m *ImageMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ImageMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedtenant {
+		edges = append(edges, image.EdgeTenant)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *ImageMutation) EdgeCleared(name string) bool {
+	switch name {
+	case image.EdgeTenant:
+		return m.clearedtenant
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *ImageMutation) ClearEdge(name string) error {
+	switch name {
+	case image.EdgeTenant:
+		m.ClearTenant()
+		return nil
+	}
 	return fmt.Errorf("unknown Image unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *ImageMutation) ResetEdge(name string) error {
+	switch name {
+	case image.EdgeTenant:
+		m.ResetTenant()
+		return nil
+	}
 	return fmt.Errorf("unknown Image edge %s", name)
 }
 
 // TenantMutation represents an operation that mutates the Tenant nodes in the graph.
 type TenantMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	tenant_id     *uuid.UUID
-	name          *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Tenant, error)
-	predicates    []predicate.Tenant
+	op              Op
+	typ             string
+	id              *int
+	tenant_id       *uuid.UUID
+	name            *string
+	created_at      *time.Time
+	updated_at      *time.Time
+	clearedFields   map[string]struct{}
+	children        *int
+	clearedchildren bool
+	parent          map[int]struct{}
+	removedparent   map[int]struct{}
+	clearedparent   bool
+	image           map[int]struct{}
+	removedimage    map[int]struct{}
+	clearedimage    bool
+	done            bool
+	oldValue        func(context.Context) (*Tenant, error)
+	predicates      []predicate.Tenant
 }
 
 var _ ent.Mutation = (*TenantMutation)(nil)
@@ -830,6 +927,153 @@ func (m *TenantMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
+// SetChildrenID sets the "children" edge to the Tenant entity by id.
+func (m *TenantMutation) SetChildrenID(id int) {
+	m.children = &id
+}
+
+// ClearChildren clears the "children" edge to the Tenant entity.
+func (m *TenantMutation) ClearChildren() {
+	m.clearedchildren = true
+}
+
+// ChildrenCleared reports if the "children" edge to the Tenant entity was cleared.
+func (m *TenantMutation) ChildrenCleared() bool {
+	return m.clearedchildren
+}
+
+// ChildrenID returns the "children" edge ID in the mutation.
+func (m *TenantMutation) ChildrenID() (id int, exists bool) {
+	if m.children != nil {
+		return *m.children, true
+	}
+	return
+}
+
+// ChildrenIDs returns the "children" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChildrenID instead. It exists only for internal usage by the builders.
+func (m *TenantMutation) ChildrenIDs() (ids []int) {
+	if id := m.children; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetChildren resets all changes to the "children" edge.
+func (m *TenantMutation) ResetChildren() {
+	m.children = nil
+	m.clearedchildren = false
+}
+
+// AddParentIDs adds the "parent" edge to the Tenant entity by ids.
+func (m *TenantMutation) AddParentIDs(ids ...int) {
+	if m.parent == nil {
+		m.parent = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.parent[ids[i]] = struct{}{}
+	}
+}
+
+// ClearParent clears the "parent" edge to the Tenant entity.
+func (m *TenantMutation) ClearParent() {
+	m.clearedparent = true
+}
+
+// ParentCleared reports if the "parent" edge to the Tenant entity was cleared.
+func (m *TenantMutation) ParentCleared() bool {
+	return m.clearedparent
+}
+
+// RemoveParentIDs removes the "parent" edge to the Tenant entity by IDs.
+func (m *TenantMutation) RemoveParentIDs(ids ...int) {
+	if m.removedparent == nil {
+		m.removedparent = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.parent, ids[i])
+		m.removedparent[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedParent returns the removed IDs of the "parent" edge to the Tenant entity.
+func (m *TenantMutation) RemovedParentIDs() (ids []int) {
+	for id := range m.removedparent {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ParentIDs returns the "parent" edge IDs in the mutation.
+func (m *TenantMutation) ParentIDs() (ids []int) {
+	for id := range m.parent {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetParent resets all changes to the "parent" edge.
+func (m *TenantMutation) ResetParent() {
+	m.parent = nil
+	m.clearedparent = false
+	m.removedparent = nil
+}
+
+// AddImageIDs adds the "image" edge to the Image entity by ids.
+func (m *TenantMutation) AddImageIDs(ids ...int) {
+	if m.image == nil {
+		m.image = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.image[ids[i]] = struct{}{}
+	}
+}
+
+// ClearImage clears the "image" edge to the Image entity.
+func (m *TenantMutation) ClearImage() {
+	m.clearedimage = true
+}
+
+// ImageCleared reports if the "image" edge to the Image entity was cleared.
+func (m *TenantMutation) ImageCleared() bool {
+	return m.clearedimage
+}
+
+// RemoveImageIDs removes the "image" edge to the Image entity by IDs.
+func (m *TenantMutation) RemoveImageIDs(ids ...int) {
+	if m.removedimage == nil {
+		m.removedimage = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.image, ids[i])
+		m.removedimage[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedImage returns the removed IDs of the "image" edge to the Image entity.
+func (m *TenantMutation) RemovedImageIDs() (ids []int) {
+	for id := range m.removedimage {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ImageIDs returns the "image" edge IDs in the mutation.
+func (m *TenantMutation) ImageIDs() (ids []int) {
+	for id := range m.image {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetImage resets all changes to the "image" edge.
+func (m *TenantMutation) ResetImage() {
+	m.image = nil
+	m.clearedimage = false
+	m.removedimage = nil
+}
+
 // Where appends a list predicates to the TenantMutation builder.
 func (m *TenantMutation) Where(ps ...predicate.Tenant) {
 	m.predicates = append(m.predicates, ps...)
@@ -1014,48 +1258,128 @@ func (m *TenantMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TenantMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 3)
+	if m.children != nil {
+		edges = append(edges, tenant.EdgeChildren)
+	}
+	if m.parent != nil {
+		edges = append(edges, tenant.EdgeParent)
+	}
+	if m.image != nil {
+		edges = append(edges, tenant.EdgeImage)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *TenantMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case tenant.EdgeChildren:
+		if id := m.children; id != nil {
+			return []ent.Value{*id}
+		}
+	case tenant.EdgeParent:
+		ids := make([]ent.Value, 0, len(m.parent))
+		for id := range m.parent {
+			ids = append(ids, id)
+		}
+		return ids
+	case tenant.EdgeImage:
+		ids := make([]ent.Value, 0, len(m.image))
+		for id := range m.image {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TenantMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 3)
+	if m.removedparent != nil {
+		edges = append(edges, tenant.EdgeParent)
+	}
+	if m.removedimage != nil {
+		edges = append(edges, tenant.EdgeImage)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *TenantMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case tenant.EdgeParent:
+		ids := make([]ent.Value, 0, len(m.removedparent))
+		for id := range m.removedparent {
+			ids = append(ids, id)
+		}
+		return ids
+	case tenant.EdgeImage:
+		ids := make([]ent.Value, 0, len(m.removedimage))
+		for id := range m.removedimage {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TenantMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 3)
+	if m.clearedchildren {
+		edges = append(edges, tenant.EdgeChildren)
+	}
+	if m.clearedparent {
+		edges = append(edges, tenant.EdgeParent)
+	}
+	if m.clearedimage {
+		edges = append(edges, tenant.EdgeImage)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *TenantMutation) EdgeCleared(name string) bool {
+	switch name {
+	case tenant.EdgeChildren:
+		return m.clearedchildren
+	case tenant.EdgeParent:
+		return m.clearedparent
+	case tenant.EdgeImage:
+		return m.clearedimage
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *TenantMutation) ClearEdge(name string) error {
+	switch name {
+	case tenant.EdgeChildren:
+		m.ClearChildren()
+		return nil
+	}
 	return fmt.Errorf("unknown Tenant unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *TenantMutation) ResetEdge(name string) error {
+	switch name {
+	case tenant.EdgeChildren:
+		m.ResetChildren()
+		return nil
+	case tenant.EdgeParent:
+		m.ResetParent()
+		return nil
+	case tenant.EdgeImage:
+		m.ResetImage()
+		return nil
+	}
 	return fmt.Errorf("unknown Tenant edge %s", name)
 }

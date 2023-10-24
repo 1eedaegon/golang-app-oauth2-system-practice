@@ -11,6 +11,14 @@ import (
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/tenant"
 )
 
+type entClient struct {
+	client *ent.Client
+}
+
+func NewServer(client *ent.Client) *entClient {
+	return &entClient{client: client }
+}
+
 func main() {
 	var dsn string
 	flag.StringVar(&dsn, "dsn", "", "database DSN")
@@ -30,6 +38,8 @@ func main() {
 		}
 	}
 }
+
+
 
 func seed(ctx context.Context, client *ent.Client) error {
 	// Check if the user "rotemtam" already exists.

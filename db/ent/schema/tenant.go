@@ -27,12 +27,12 @@ func (Tenant) Fields() []ent.Field {
 	}
 }
 
-func (Tenant) Edge() []ent.Edge {
+// Edge를 정의할 때 UUID를 PK로 보장하지 않도록 주의한다.
+func (Tenant) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("resource", Image.Type),
-		edge.
-			To("children", Tenant.Type).
-			From("parent").
+		edge.To("parent", Tenant.Type).
+			From("children").
 			Unique(),
+		edge.To("image", Image.Type),
 	}
 }

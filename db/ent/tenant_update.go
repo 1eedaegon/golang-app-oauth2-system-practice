@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/image"
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/predicate"
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/tenant"
 	"github.com/google/uuid"
@@ -77,9 +78,106 @@ func (tu *TenantUpdate) SetNillableUpdatedAt(t *time.Time) *TenantUpdate {
 	return tu
 }
 
+// SetChildrenID sets the "children" edge to the Tenant entity by ID.
+func (tu *TenantUpdate) SetChildrenID(id int) *TenantUpdate {
+	tu.mutation.SetChildrenID(id)
+	return tu
+}
+
+// SetNillableChildrenID sets the "children" edge to the Tenant entity by ID if the given value is not nil.
+func (tu *TenantUpdate) SetNillableChildrenID(id *int) *TenantUpdate {
+	if id != nil {
+		tu = tu.SetChildrenID(*id)
+	}
+	return tu
+}
+
+// SetChildren sets the "children" edge to the Tenant entity.
+func (tu *TenantUpdate) SetChildren(t *Tenant) *TenantUpdate {
+	return tu.SetChildrenID(t.ID)
+}
+
+// AddParentIDs adds the "parent" edge to the Tenant entity by IDs.
+func (tu *TenantUpdate) AddParentIDs(ids ...int) *TenantUpdate {
+	tu.mutation.AddParentIDs(ids...)
+	return tu
+}
+
+// AddParent adds the "parent" edges to the Tenant entity.
+func (tu *TenantUpdate) AddParent(t ...*Tenant) *TenantUpdate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return tu.AddParentIDs(ids...)
+}
+
+// AddImageIDs adds the "image" edge to the Image entity by IDs.
+func (tu *TenantUpdate) AddImageIDs(ids ...int) *TenantUpdate {
+	tu.mutation.AddImageIDs(ids...)
+	return tu
+}
+
+// AddImage adds the "image" edges to the Image entity.
+func (tu *TenantUpdate) AddImage(i ...*Image) *TenantUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return tu.AddImageIDs(ids...)
+}
+
 // Mutation returns the TenantMutation object of the builder.
 func (tu *TenantUpdate) Mutation() *TenantMutation {
 	return tu.mutation
+}
+
+// ClearChildren clears the "children" edge to the Tenant entity.
+func (tu *TenantUpdate) ClearChildren() *TenantUpdate {
+	tu.mutation.ClearChildren()
+	return tu
+}
+
+// ClearParent clears all "parent" edges to the Tenant entity.
+func (tu *TenantUpdate) ClearParent() *TenantUpdate {
+	tu.mutation.ClearParent()
+	return tu
+}
+
+// RemoveParentIDs removes the "parent" edge to Tenant entities by IDs.
+func (tu *TenantUpdate) RemoveParentIDs(ids ...int) *TenantUpdate {
+	tu.mutation.RemoveParentIDs(ids...)
+	return tu
+}
+
+// RemoveParent removes "parent" edges to Tenant entities.
+func (tu *TenantUpdate) RemoveParent(t ...*Tenant) *TenantUpdate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return tu.RemoveParentIDs(ids...)
+}
+
+// ClearImage clears all "image" edges to the Image entity.
+func (tu *TenantUpdate) ClearImage() *TenantUpdate {
+	tu.mutation.ClearImage()
+	return tu
+}
+
+// RemoveImageIDs removes the "image" edge to Image entities by IDs.
+func (tu *TenantUpdate) RemoveImageIDs(ids ...int) *TenantUpdate {
+	tu.mutation.RemoveImageIDs(ids...)
+	return tu
+}
+
+// RemoveImage removes "image" edges to Image entities.
+func (tu *TenantUpdate) RemoveImage(i ...*Image) *TenantUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return tu.RemoveImageIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -129,6 +227,125 @@ func (tu *TenantUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := tu.mutation.UpdatedAt(); ok {
 		_spec.SetField(tenant.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if tu.mutation.ChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   tenant.ChildrenTable,
+			Columns: []string{tenant.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   tenant.ChildrenTable,
+			Columns: []string{tenant.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if tu.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ParentTable,
+			Columns: []string{tenant.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.RemovedParentIDs(); len(nodes) > 0 && !tu.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ParentTable,
+			Columns: []string{tenant.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ParentTable,
+			Columns: []string{tenant.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if tu.mutation.ImageCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ImageTable,
+			Columns: []string{tenant.ImageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(image.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.RemovedImageIDs(); len(nodes) > 0 && !tu.mutation.ImageCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ImageTable,
+			Columns: []string{tenant.ImageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(image.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.ImageIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ImageTable,
+			Columns: []string{tenant.ImageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(image.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, tu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -198,9 +415,106 @@ func (tuo *TenantUpdateOne) SetNillableUpdatedAt(t *time.Time) *TenantUpdateOne 
 	return tuo
 }
 
+// SetChildrenID sets the "children" edge to the Tenant entity by ID.
+func (tuo *TenantUpdateOne) SetChildrenID(id int) *TenantUpdateOne {
+	tuo.mutation.SetChildrenID(id)
+	return tuo
+}
+
+// SetNillableChildrenID sets the "children" edge to the Tenant entity by ID if the given value is not nil.
+func (tuo *TenantUpdateOne) SetNillableChildrenID(id *int) *TenantUpdateOne {
+	if id != nil {
+		tuo = tuo.SetChildrenID(*id)
+	}
+	return tuo
+}
+
+// SetChildren sets the "children" edge to the Tenant entity.
+func (tuo *TenantUpdateOne) SetChildren(t *Tenant) *TenantUpdateOne {
+	return tuo.SetChildrenID(t.ID)
+}
+
+// AddParentIDs adds the "parent" edge to the Tenant entity by IDs.
+func (tuo *TenantUpdateOne) AddParentIDs(ids ...int) *TenantUpdateOne {
+	tuo.mutation.AddParentIDs(ids...)
+	return tuo
+}
+
+// AddParent adds the "parent" edges to the Tenant entity.
+func (tuo *TenantUpdateOne) AddParent(t ...*Tenant) *TenantUpdateOne {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return tuo.AddParentIDs(ids...)
+}
+
+// AddImageIDs adds the "image" edge to the Image entity by IDs.
+func (tuo *TenantUpdateOne) AddImageIDs(ids ...int) *TenantUpdateOne {
+	tuo.mutation.AddImageIDs(ids...)
+	return tuo
+}
+
+// AddImage adds the "image" edges to the Image entity.
+func (tuo *TenantUpdateOne) AddImage(i ...*Image) *TenantUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return tuo.AddImageIDs(ids...)
+}
+
 // Mutation returns the TenantMutation object of the builder.
 func (tuo *TenantUpdateOne) Mutation() *TenantMutation {
 	return tuo.mutation
+}
+
+// ClearChildren clears the "children" edge to the Tenant entity.
+func (tuo *TenantUpdateOne) ClearChildren() *TenantUpdateOne {
+	tuo.mutation.ClearChildren()
+	return tuo
+}
+
+// ClearParent clears all "parent" edges to the Tenant entity.
+func (tuo *TenantUpdateOne) ClearParent() *TenantUpdateOne {
+	tuo.mutation.ClearParent()
+	return tuo
+}
+
+// RemoveParentIDs removes the "parent" edge to Tenant entities by IDs.
+func (tuo *TenantUpdateOne) RemoveParentIDs(ids ...int) *TenantUpdateOne {
+	tuo.mutation.RemoveParentIDs(ids...)
+	return tuo
+}
+
+// RemoveParent removes "parent" edges to Tenant entities.
+func (tuo *TenantUpdateOne) RemoveParent(t ...*Tenant) *TenantUpdateOne {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return tuo.RemoveParentIDs(ids...)
+}
+
+// ClearImage clears all "image" edges to the Image entity.
+func (tuo *TenantUpdateOne) ClearImage() *TenantUpdateOne {
+	tuo.mutation.ClearImage()
+	return tuo
+}
+
+// RemoveImageIDs removes the "image" edge to Image entities by IDs.
+func (tuo *TenantUpdateOne) RemoveImageIDs(ids ...int) *TenantUpdateOne {
+	tuo.mutation.RemoveImageIDs(ids...)
+	return tuo
+}
+
+// RemoveImage removes "image" edges to Image entities.
+func (tuo *TenantUpdateOne) RemoveImage(i ...*Image) *TenantUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return tuo.RemoveImageIDs(ids...)
 }
 
 // Where appends a list predicates to the TenantUpdate builder.
@@ -280,6 +594,125 @@ func (tuo *TenantUpdateOne) sqlSave(ctx context.Context) (_node *Tenant, err err
 	}
 	if value, ok := tuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(tenant.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if tuo.mutation.ChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   tenant.ChildrenTable,
+			Columns: []string{tenant.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   tenant.ChildrenTable,
+			Columns: []string{tenant.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if tuo.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ParentTable,
+			Columns: []string{tenant.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.RemovedParentIDs(); len(nodes) > 0 && !tuo.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ParentTable,
+			Columns: []string{tenant.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ParentTable,
+			Columns: []string{tenant.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if tuo.mutation.ImageCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ImageTable,
+			Columns: []string{tenant.ImageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(image.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.RemovedImageIDs(); len(nodes) > 0 && !tuo.mutation.ImageCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ImageTable,
+			Columns: []string{tenant.ImageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(image.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.ImageIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ImageTable,
+			Columns: []string{tenant.ImageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(image.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Tenant{config: tuo.config}
 	_spec.Assign = _node.assignValues

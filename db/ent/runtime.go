@@ -22,11 +22,11 @@ func init() {
 	// image.DefaultImageID holds the default value on creation for the image_id field.
 	image.DefaultImageID = imageDescImageID.Default.(func() uuid.UUID)
 	// imageDescCreatedAt is the schema descriptor for created_at field.
-	imageDescCreatedAt := imageFields[3].Descriptor()
+	imageDescCreatedAt := imageFields[2].Descriptor()
 	// image.DefaultCreatedAt holds the default value on creation for the created_at field.
 	image.DefaultCreatedAt = imageDescCreatedAt.Default.(func() time.Time)
 	// imageDescUpdatedAt is the schema descriptor for updated_at field.
-	imageDescUpdatedAt := imageFields[4].Descriptor()
+	imageDescUpdatedAt := imageFields[3].Descriptor()
 	// image.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	image.DefaultUpdatedAt = imageDescUpdatedAt.Default.(func() time.Time)
 	tenantFields := schema.Tenant{}.Fields()

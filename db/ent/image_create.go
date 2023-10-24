@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/image"
+	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/tenant"
 	"github.com/google/uuid"
 )
 
@@ -32,12 +33,6 @@ func (ic *ImageCreate) SetNillableImageID(u *uuid.UUID) *ImageCreate {
 	if u != nil {
 		ic.SetImageID(*u)
 	}
-	return ic
-}
-
-// SetTenantID sets the "tenant_id" field.
-func (ic *ImageCreate) SetTenantID(u uuid.UUID) *ImageCreate {
-	ic.mutation.SetTenantID(u)
 	return ic
 }
 
@@ -73,6 +68,39 @@ func (ic *ImageCreate) SetNillableUpdatedAt(t *time.Time) *ImageCreate {
 		ic.SetUpdatedAt(*t)
 	}
 	return ic
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (ic *ImageCreate) SetTenantID(u uuid.UUID) *ImageCreate {
+	ic.mutation.SetTenantID(u)
+	return ic
+}
+
+// SetNillableTenantID sets the "tenant_id" field if the given value is not nil.
+func (ic *ImageCreate) SetNillableTenantID(u *uuid.UUID) *ImageCreate {
+	if u != nil {
+		ic.SetTenantID(*u)
+	}
+	return ic
+}
+
+// SetTenantID sets the "tenant" edge to the Tenant entity by ID.
+func (ic *ImageCreate) SetTenantID(id int) *ImageCreate {
+	ic.mutation.SetTenantID(id)
+	return ic
+}
+
+// SetNillableTenantID sets the "tenant" edge to the Tenant entity by ID if the given value is not nil.
+func (ic *ImageCreate) SetNillableTenantID(id *int) *ImageCreate {
+	if id != nil {
+		ic = ic.SetTenantID(*id)
+	}
+	return ic
+}
+
+// SetTenant sets the "tenant" edge to the Tenant entity.
+func (ic *ImageCreate) SetTenant(t *Tenant) *ImageCreate {
+	return ic.SetTenantID(t.ID)
 }
 
 // Mutation returns the ImageMutation object of the builder.
@@ -129,9 +157,6 @@ func (ic *ImageCreate) check() error {
 	if _, ok := ic.mutation.ImageID(); !ok {
 		return &ValidationError{Name: "image_id", err: errors.New(`ent: missing required field "Image.image_id"`)}
 	}
-	if _, ok := ic.mutation.TenantID(); !ok {
-		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "Image.tenant_id"`)}
-	}
 	if _, ok := ic.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Image.name"`)}
 	}
@@ -171,10 +196,6 @@ func (ic *ImageCreate) createSpec() (*Image, *sqlgraph.CreateSpec) {
 		_spec.SetField(image.FieldImageID, field.TypeUUID, value)
 		_node.ImageID = value
 	}
-	if value, ok := ic.mutation.TenantID(); ok {
-		_spec.SetField(image.FieldTenantID, field.TypeUUID, value)
-		_node.TenantID = value
-	}
 	if value, ok := ic.mutation.Name(); ok {
 		_spec.SetField(image.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -186,6 +207,27 @@ func (ic *ImageCreate) createSpec() (*Image, *sqlgraph.CreateSpec) {
 	if value, ok := ic.mutation.UpdatedAt(); ok {
 		_spec.SetField(image.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if value, ok := ic.mutation.TenantID(); ok {
+		_spec.SetField(image.FieldTenantID, field.TypeUUID, value)
+		_node.TenantID = value
+	}
+	if nodes := ic.mutation.TenantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   image.TenantTable,
+			Columns: []string{image.TenantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.tenant_image = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

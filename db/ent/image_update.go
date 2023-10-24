@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/image"
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/predicate"
+	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/tenant"
 	"github.com/google/uuid"
 )
 
@@ -40,12 +41,6 @@ func (iu *ImageUpdate) SetNillableImageID(u *uuid.UUID) *ImageUpdate {
 	if u != nil {
 		iu.SetImageID(*u)
 	}
-	return iu
-}
-
-// SetTenantID sets the "tenant_id" field.
-func (iu *ImageUpdate) SetTenantID(u uuid.UUID) *ImageUpdate {
-	iu.mutation.SetTenantID(u)
 	return iu
 }
 
@@ -83,9 +78,54 @@ func (iu *ImageUpdate) SetNillableUpdatedAt(t *time.Time) *ImageUpdate {
 	return iu
 }
 
+// SetTenantID sets the "tenant_id" field.
+func (iu *ImageUpdate) SetTenantID(u uuid.UUID) *ImageUpdate {
+	iu.mutation.SetTenantID(u)
+	return iu
+}
+
+// SetNillableTenantID sets the "tenant_id" field if the given value is not nil.
+func (iu *ImageUpdate) SetNillableTenantID(u *uuid.UUID) *ImageUpdate {
+	if u != nil {
+		iu.SetTenantID(*u)
+	}
+	return iu
+}
+
+// ClearTenantID clears the value of the "tenant_id" field.
+func (iu *ImageUpdate) ClearTenantID() *ImageUpdate {
+	iu.mutation.ClearTenantID()
+	return iu
+}
+
+// SetTenantID sets the "tenant" edge to the Tenant entity by ID.
+func (iu *ImageUpdate) SetTenantID(id int) *ImageUpdate {
+	iu.mutation.SetTenantID(id)
+	return iu
+}
+
+// SetNillableTenantID sets the "tenant" edge to the Tenant entity by ID if the given value is not nil.
+func (iu *ImageUpdate) SetNillableTenantID(id *int) *ImageUpdate {
+	if id != nil {
+		iu = iu.SetTenantID(*id)
+	}
+	return iu
+}
+
+// SetTenant sets the "tenant" edge to the Tenant entity.
+func (iu *ImageUpdate) SetTenant(t *Tenant) *ImageUpdate {
+	return iu.SetTenantID(t.ID)
+}
+
 // Mutation returns the ImageMutation object of the builder.
 func (iu *ImageUpdate) Mutation() *ImageMutation {
 	return iu.mutation
+}
+
+// ClearTenant clears the "tenant" edge to the Tenant entity.
+func (iu *ImageUpdate) ClearTenant() *ImageUpdate {
+	iu.mutation.ClearTenant()
+	return iu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -127,9 +167,6 @@ func (iu *ImageUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := iu.mutation.ImageID(); ok {
 		_spec.SetField(image.FieldImageID, field.TypeUUID, value)
 	}
-	if value, ok := iu.mutation.TenantID(); ok {
-		_spec.SetField(image.FieldTenantID, field.TypeUUID, value)
-	}
 	if value, ok := iu.mutation.Name(); ok {
 		_spec.SetField(image.FieldName, field.TypeString, value)
 	}
@@ -138,6 +175,41 @@ func (iu *ImageUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := iu.mutation.UpdatedAt(); ok {
 		_spec.SetField(image.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := iu.mutation.TenantID(); ok {
+		_spec.SetField(image.FieldTenantID, field.TypeUUID, value)
+	}
+	if iu.mutation.TenantIDCleared() {
+		_spec.ClearField(image.FieldTenantID, field.TypeUUID)
+	}
+	if iu.mutation.TenantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   image.TenantTable,
+			Columns: []string{image.TenantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iu.mutation.TenantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   image.TenantTable,
+			Columns: []string{image.TenantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, iu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -170,12 +242,6 @@ func (iuo *ImageUpdateOne) SetNillableImageID(u *uuid.UUID) *ImageUpdateOne {
 	if u != nil {
 		iuo.SetImageID(*u)
 	}
-	return iuo
-}
-
-// SetTenantID sets the "tenant_id" field.
-func (iuo *ImageUpdateOne) SetTenantID(u uuid.UUID) *ImageUpdateOne {
-	iuo.mutation.SetTenantID(u)
 	return iuo
 }
 
@@ -213,9 +279,54 @@ func (iuo *ImageUpdateOne) SetNillableUpdatedAt(t *time.Time) *ImageUpdateOne {
 	return iuo
 }
 
+// SetTenantID sets the "tenant_id" field.
+func (iuo *ImageUpdateOne) SetTenantID(u uuid.UUID) *ImageUpdateOne {
+	iuo.mutation.SetTenantID(u)
+	return iuo
+}
+
+// SetNillableTenantID sets the "tenant_id" field if the given value is not nil.
+func (iuo *ImageUpdateOne) SetNillableTenantID(u *uuid.UUID) *ImageUpdateOne {
+	if u != nil {
+		iuo.SetTenantID(*u)
+	}
+	return iuo
+}
+
+// ClearTenantID clears the value of the "tenant_id" field.
+func (iuo *ImageUpdateOne) ClearTenantID() *ImageUpdateOne {
+	iuo.mutation.ClearTenantID()
+	return iuo
+}
+
+// SetTenantID sets the "tenant" edge to the Tenant entity by ID.
+func (iuo *ImageUpdateOne) SetTenantID(id int) *ImageUpdateOne {
+	iuo.mutation.SetTenantID(id)
+	return iuo
+}
+
+// SetNillableTenantID sets the "tenant" edge to the Tenant entity by ID if the given value is not nil.
+func (iuo *ImageUpdateOne) SetNillableTenantID(id *int) *ImageUpdateOne {
+	if id != nil {
+		iuo = iuo.SetTenantID(*id)
+	}
+	return iuo
+}
+
+// SetTenant sets the "tenant" edge to the Tenant entity.
+func (iuo *ImageUpdateOne) SetTenant(t *Tenant) *ImageUpdateOne {
+	return iuo.SetTenantID(t.ID)
+}
+
 // Mutation returns the ImageMutation object of the builder.
 func (iuo *ImageUpdateOne) Mutation() *ImageMutation {
 	return iuo.mutation
+}
+
+// ClearTenant clears the "tenant" edge to the Tenant entity.
+func (iuo *ImageUpdateOne) ClearTenant() *ImageUpdateOne {
+	iuo.mutation.ClearTenant()
+	return iuo
 }
 
 // Where appends a list predicates to the ImageUpdate builder.
@@ -287,9 +398,6 @@ func (iuo *ImageUpdateOne) sqlSave(ctx context.Context) (_node *Image, err error
 	if value, ok := iuo.mutation.ImageID(); ok {
 		_spec.SetField(image.FieldImageID, field.TypeUUID, value)
 	}
-	if value, ok := iuo.mutation.TenantID(); ok {
-		_spec.SetField(image.FieldTenantID, field.TypeUUID, value)
-	}
 	if value, ok := iuo.mutation.Name(); ok {
 		_spec.SetField(image.FieldName, field.TypeString, value)
 	}
@@ -298,6 +406,41 @@ func (iuo *ImageUpdateOne) sqlSave(ctx context.Context) (_node *Image, err error
 	}
 	if value, ok := iuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(image.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := iuo.mutation.TenantID(); ok {
+		_spec.SetField(image.FieldTenantID, field.TypeUUID, value)
+	}
+	if iuo.mutation.TenantIDCleared() {
+		_spec.ClearField(image.FieldTenantID, field.TypeUUID)
+	}
+	if iuo.mutation.TenantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   image.TenantTable,
+			Columns: []string{image.TenantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iuo.mutation.TenantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   image.TenantTable,
+			Columns: []string{image.TenantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Image{config: iuo.config}
 	_spec.Assign = _node.assignValues

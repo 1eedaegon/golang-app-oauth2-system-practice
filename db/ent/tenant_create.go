@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/image"
 	"github.com/1eedaegon/golang-app-oauth2-system-practice/db/ent/tenant"
 	"github.com/google/uuid"
 )
@@ -67,6 +68,55 @@ func (tc *TenantCreate) SetNillableUpdatedAt(t *time.Time) *TenantCreate {
 		tc.SetUpdatedAt(*t)
 	}
 	return tc
+}
+
+// SetChildrenID sets the "children" edge to the Tenant entity by ID.
+func (tc *TenantCreate) SetChildrenID(id int) *TenantCreate {
+	tc.mutation.SetChildrenID(id)
+	return tc
+}
+
+// SetNillableChildrenID sets the "children" edge to the Tenant entity by ID if the given value is not nil.
+func (tc *TenantCreate) SetNillableChildrenID(id *int) *TenantCreate {
+	if id != nil {
+		tc = tc.SetChildrenID(*id)
+	}
+	return tc
+}
+
+// SetChildren sets the "children" edge to the Tenant entity.
+func (tc *TenantCreate) SetChildren(t *Tenant) *TenantCreate {
+	return tc.SetChildrenID(t.ID)
+}
+
+// AddParentIDs adds the "parent" edge to the Tenant entity by IDs.
+func (tc *TenantCreate) AddParentIDs(ids ...int) *TenantCreate {
+	tc.mutation.AddParentIDs(ids...)
+	return tc
+}
+
+// AddParent adds the "parent" edges to the Tenant entity.
+func (tc *TenantCreate) AddParent(t ...*Tenant) *TenantCreate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return tc.AddParentIDs(ids...)
+}
+
+// AddImageIDs adds the "image" edge to the Image entity by IDs.
+func (tc *TenantCreate) AddImageIDs(ids ...int) *TenantCreate {
+	tc.mutation.AddImageIDs(ids...)
+	return tc
+}
+
+// AddImage adds the "image" edges to the Image entity.
+func (tc *TenantCreate) AddImage(i ...*Image) *TenantCreate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return tc.AddImageIDs(ids...)
 }
 
 // Mutation returns the TenantMutation object of the builder.
@@ -173,6 +223,55 @@ func (tc *TenantCreate) createSpec() (*Tenant, *sqlgraph.CreateSpec) {
 	if value, ok := tc.mutation.UpdatedAt(); ok {
 		_spec.SetField(tenant.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := tc.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   tenant.ChildrenTable,
+			Columns: []string{tenant.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.tenant_parent = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := tc.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ParentTable,
+			Columns: []string{tenant.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tenant.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := tc.mutation.ImageIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   tenant.ImageTable,
+			Columns: []string{tenant.ImageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(image.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
